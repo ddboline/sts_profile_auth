@@ -5,6 +5,7 @@ use rusoto_core::{HttpClient, Region};
 use rusoto_credential::{AutoRefreshingProvider, StaticProvider};
 use rusoto_ec2::Ec2Client;
 use rusoto_ecr::EcrClient;
+use rusoto_s3::S3Client;
 use rusoto_sts::{StsAssumeRoleSessionCredentialsProvider, StsClient};
 use std::collections::HashMap;
 use std::env::var;
@@ -117,6 +118,10 @@ impl StsInstance {
 
     pub fn get_ecr_client(&self, region: Region) -> Result<EcrClient, Error> {
         get_client_sts!(EcrClient, region)
+    }
+
+    pub fn get_s3_client(&self, region: Region) -> Result<S3Client, Error> {
+        get_client_sts!(S3Client, region)
     }
 }
 
