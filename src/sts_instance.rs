@@ -1,4 +1,4 @@
-use failure::format_err;
+use failure::{format_err, Error};
 use lazy_static::lazy_static;
 use regex::Regex;
 use rusoto_core::{HttpClient, Region};
@@ -8,7 +8,6 @@ use rusoto_ecr::EcrClient;
 use rusoto_sts::{StsAssumeRoleSessionCredentialsProvider, StsClient};
 use std::collections::HashMap;
 use std::env::var;
-use std::error::Error as StdError;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
@@ -52,7 +51,7 @@ impl Default for StsInstance {
 }
 
 impl StsInstance {
-    pub fn new(profile_name: Option<&str>) -> Result<Self, Box<dyn StdError + Send>> {
+    pub fn new(profile_name: Option<&str>) -> Result<Self, Error> {
         let profiles = AwsProfileInfo::fill_profile_map()?;
         let profile_name = match profile_name {
             Some(n) => n.to_string(),
@@ -112,11 +111,11 @@ impl StsInstance {
         })
     }
 
-    pub fn get_ec2_client(&self, region: Region) -> Result<Ec2Client, Box<dyn StdError + Send>> {
+    pub fn get_ec2_client(&self, region: Region) -> Result<Ec2Client, Error> {
         get_client_sts!(Ec2Client, region)
     }
 
-    pub fn get_ecr_client(&self, region: Region) -> Result<EcrClient, Box<dyn StdError + Send>> {
+    pub fn get_ecr_client(&self, region: Region) -> Result<EcrClient, Error> {
         get_client_sts!(EcrClient, region)
     }
 }
@@ -179,7 +178,7 @@ impl AwsProfileInfo {
         })
     }
 
-    pub fn fill_profile_map() -> Result<HashMap<String, AwsProfileInfo>, Box<dyn StdError + Send>> {
+    pub fn fill_profile_map() -> Result<HashMap<String, AwsProfileInfo>, Error> {
         let home_dir = var("HOME").map_err(|e| format_err!("No HOME directory {}", e))?;
         let config_file = format!("{}/.aws/config", home_dir);
         let credential_file = format!("{}/.aws/credentials", home_dir);
