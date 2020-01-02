@@ -52,7 +52,7 @@ impl Default for StsInstance {
 }
 
 impl StsInstance {
-    pub fn new(profile_name: Option<&str>) -> Result<Self, Box<dyn StdError>> {
+    pub fn new(profile_name: Option<&str>) -> Result<Self, Box<dyn StdError + Send>> {
         let profiles = AwsProfileInfo::fill_profile_map()?;
         let profile_name = match profile_name {
             Some(n) => n.to_string(),
@@ -112,11 +112,11 @@ impl StsInstance {
         })
     }
 
-    pub fn get_ec2_client(&self, region: Region) -> Result<Ec2Client, Box<dyn StdError>> {
+    pub fn get_ec2_client(&self, region: Region) -> Result<Ec2Client, Box<dyn StdError + Send>> {
         get_client_sts!(Ec2Client, region)
     }
 
-    pub fn get_ecr_client(&self, region: Region) -> Result<EcrClient, Box<dyn StdError>> {
+    pub fn get_ecr_client(&self, region: Region) -> Result<EcrClient, Box<dyn StdError + Send>> {
         get_client_sts!(EcrClient, region)
     }
 }
@@ -179,7 +179,7 @@ impl AwsProfileInfo {
         })
     }
 
-    pub fn fill_profile_map() -> Result<HashMap<String, AwsProfileInfo>, Box<dyn StdError>> {
+    pub fn fill_profile_map() -> Result<HashMap<String, AwsProfileInfo>, Box<dyn StdError + Send>> {
         let home_dir = var("HOME").map_err(|e| format_err!("No HOME directory {}", e))?;
         let config_file = format!("{}/.aws/config", home_dir);
         let credential_file = format!("{}/.aws/credentials", home_dir);
