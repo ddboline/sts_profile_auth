@@ -1,21 +1,32 @@
-use failure::{format_err, Error};
 use lazy_static::lazy_static;
 use regex::Regex;
 use rusoto_core::{HttpClient, Region};
+use rusoto_core::request::TlsError;
 use rusoto_credential::{AutoRefreshingProvider, StaticProvider};
 use rusoto_ec2::Ec2Client;
 use rusoto_ecr::EcrClient;
 use rusoto_s3::S3Client;
 use rusoto_sts::{StsAssumeRoleSessionCredentialsProvider, StsClient};
 use std::collections::HashMap;
-use std::env::var;
+use std::env::{var, VarError};
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
+use thiserror::Error;
 
 lazy_static! {
     static ref PROFILE_REGEX: Regex =
         Regex::new(r"^\[(profile )?([^\]]+)\]$").expect("Failed to compile regex");
+}
+
+#[derive(Debug, Error)]
+pub enum StsClientError {
+    #[error("HttpClient init failed")]
+    TlsError(#[from] TlsError),
+    #[error("Profile {0} is not available")]
+    StsProfileError(String),
+    #[error("No HOME directory {0}")]
+    NoHomeError(#[from] VarError),
 }
 
 macro_rules! get_client_sts {
@@ -52,7 +63,7 @@ impl Default for StsInstance {
 }
 
 impl StsInstance {
-    pub fn new(profile_name: Option<&str>) -> Result<Self, Error> {
+    pub fn new(profile_name: Option<&str>) -> Result<Self, StsClientError> {
         let profiles = AwsProfileInfo::fill_profile_map()?;
         let profile_name = match profile_name {
             Some(n) => n.to_string(),
@@ -62,7 +73,7 @@ impl StsInstance {
         };
         let current_profile = profiles
             .get(&profile_name)
-            .ok_or_else(|| format_err!("No such profile: {}", profile_name))?;
+            .ok_or_else(|| StsClientError::StsProfileError(profile_name))?;
 
         let region = current_profile
             .region
@@ -73,7 +84,7 @@ impl StsInstance {
             Some(prof) => {
                 let source_profile = profiles
                     .get(prof)
-                    .ok_or_else(|| format_err!("Source profile {} doesn't exist", prof))?;
+                    .ok_or_else(|| StsClientError::StsProfileError(prof.to_string()))?;
                 (
                     source_profile.aws_access_key_id.to_string(),
                     source_profile.aws_secret_access_key.to_string(),
@@ -112,15 +123,15 @@ impl StsInstance {
         })
     }
 
-    pub fn get_ec2_client(&self, region: Region) -> Result<Ec2Client, Error> {
+    pub fn get_ec2_client(&self, region: Region) -> Result<Ec2Client, StsClientError> {
         get_client_sts!(Ec2Client, region)
     }
 
-    pub fn get_ecr_client(&self, region: Region) -> Result<EcrClient, Error> {
+    pub fn get_ecr_client(&self, region: Region) -> Result<EcrClient, StsClientError> {
         get_client_sts!(EcrClient, region)
     }
 
-    pub fn get_s3_client(&self, region: Region) -> Result<S3Client, Error> {
+    pub fn get_s3_client(&self, region: Region) -> Result<S3Client, StsClientError> {
         get_client_sts!(S3Client, region)
     }
 }
@@ -183,8 +194,8 @@ impl AwsProfileInfo {
         })
     }
 
-    pub fn fill_profile_map() -> Result<HashMap<String, AwsProfileInfo>, Error> {
-        let home_dir = var("HOME").map_err(|e| format_err!("No HOME directory {}", e))?;
+    pub fn fill_profile_map() -> Result<HashMap<String, AwsProfileInfo>, StsClientError> {
+        let home_dir = var("HOME").map_err(|e| StsClientError::NoHomeError(e))?;
         let config_file = format!("{}/.aws/config", home_dir);
         let credential_file = format!("{}/.aws/credentials", home_dir);
 
