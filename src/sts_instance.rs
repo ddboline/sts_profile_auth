@@ -1,7 +1,7 @@
 use lazy_static::lazy_static;
 use regex::Regex;
-use rusoto_core::{HttpClient, Region};
 use rusoto_core::request::TlsError;
+use rusoto_core::{HttpClient, Region};
 use rusoto_credential::{AutoRefreshingProvider, StaticProvider};
 use rusoto_ec2::Ec2Client;
 use rusoto_ecr::EcrClient;
@@ -195,7 +195,7 @@ impl AwsProfileInfo {
     }
 
     pub fn fill_profile_map() -> Result<HashMap<String, AwsProfileInfo>, StsClientError> {
-        let home_dir = var("HOME").map_err(|e| StsClientError::NoHomeError(e))?;
+        let home_dir = var("HOME").map_err(StsClientError::NoHomeError)?;
         let config_file = format!("{}/.aws/config", home_dir);
         let credential_file = format!("{}/.aws/credentials", home_dir);
 
