@@ -1,3 +1,15 @@
+#![allow(unused_imports)]
+#![allow(clippy::must_use_candidate)]
+#![allow(clippy::too_many_lines)]
+#![allow(clippy::module_name_repetitions)]
+#![allow(clippy::cast_precision_loss)]
+#![allow(clippy::cast_sign_loss)]
+#![allow(clippy::cast_possible_truncation)]
+#![allow(clippy::cast_possible_wrap)]
+#![allow(clippy::similar_names)]
+#![allow(clippy::shadow_unrelated)]
+#![allow(clippy::pub_enum_variant_names)]
+
 use lazy_static::lazy_static;
 use regex::Regex;
 use rusoto_core::request::TlsError;
@@ -138,7 +150,7 @@ impl AwsProfileInfo {
     pub fn from_hashmap(
         profile_name: &str,
         profile_map: &HashMap<String, HashMap<String, String>>,
-    ) -> Option<AwsProfileInfo> {
+    ) -> Option<Self> {
         let name = profile_name.to_string();
         let prof_map = match profile_map.get(profile_name) {
             Some(p) => p,
@@ -149,10 +161,12 @@ impl AwsProfileInfo {
             .cloned()
             .unwrap_or_else(|| "us-east-1".to_string());
 
-        let source_profile = prof_map.get("source_profile").map(|x| x.to_string());
-        let role_arn = prof_map.get("role_arn").map(|x| x.to_string());
-        let mut access_key = prof_map.get("aws_access_key_id").map(|x| x.to_string());
-        let mut access_secret = prof_map.get("aws_secret_access_key").map(|x| x.to_string());
+        let source_profile = prof_map.get("source_profile").map(ToString::to_string);
+        let role_arn = prof_map.get("role_arn").map(ToString::to_string);
+        let mut access_key = prof_map.get("aws_access_key_id").map(ToString::to_string);
+        let mut access_secret = prof_map
+            .get("aws_secret_access_key")
+            .map(ToString::to_string);
 
         if let Some(s) = source_profile.as_ref() {
             let pmap = match profile_map.get(s) {
@@ -172,7 +186,7 @@ impl AwsProfileInfo {
             Some(a) => a,
             None => return None,
         };
-        Some(AwsProfileInfo {
+        Some(Self {
             name,
             region,
             aws_access_key_id,
@@ -182,7 +196,7 @@ impl AwsProfileInfo {
         })
     }
 
-    pub fn fill_profile_map() -> Result<HashMap<String, AwsProfileInfo>, StsClientError> {
+    pub fn fill_profile_map() -> Result<HashMap<String, Self>, StsClientError> {
         let home_dir = var("HOME").map_err(StsClientError::NoHomeError)?;
         let config_file = format!("{}/.aws/config", home_dir);
         let credential_file = format!("{}/.aws/credentials", home_dir);
@@ -199,15 +213,12 @@ impl AwsProfileInfo {
                     profile_map = p;
                 } else {
                     for (k, v) in p {
-                        match profile_map.get_mut(&k) {
-                            Some(pm) => {
-                                for (k_, v_) in v {
-                                    pm.insert(k_, v_);
-                                }
+                        if let Some(pm) = profile_map.get_mut(&k) {
+                            for (k_, v_) in v {
+                                pm.insert(k_, v_);
                             }
-                            None => {
-                                profile_map.insert(k, v);
-                            }
+                        } else {
+                            profile_map.insert(k, v);
                         }
                     }
                 }
@@ -305,7 +316,8 @@ mod tests {
                                 .collect::<Vec<_>>()
                         })
                     })
-                    .flatten().collect()
+                    .flatten()
+                    .collect()
             })
             .unwrap();
         println!("{:?}", instances);
