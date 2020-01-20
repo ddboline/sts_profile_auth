@@ -10,11 +10,12 @@
 #![allow(clippy::shadow_unrelated)]
 #![allow(clippy::pub_enum_variant_names)]
 
+///! The purpose of this crate
 use lazy_static::lazy_static;
 use regex::Regex;
 use rusoto_core::request::TlsError;
-use rusoto_core::{HttpClient, Region};
-use rusoto_credential::{AutoRefreshingProvider, StaticProvider};
+use rusoto_core::{HttpClient, Region, RusotoError};
+use rusoto_credential::{AutoRefreshingProvider, CredentialsError, StaticProvider};
 use rusoto_sts::{StsAssumeRoleSessionCredentialsProvider, StsClient};
 use std::collections::HashMap;
 use std::env::{var, VarError};
@@ -22,6 +23,7 @@ use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
 use thiserror::Error;
+use std::fmt::Display;
 
 lazy_static! {
     static ref PROFILE_REGEX: Regex =
@@ -36,13 +38,23 @@ pub enum StsClientError {
     StsProfileError(String),
     #[error("No HOME directory {0}")]
     NoHomeError(#[from] VarError),
+    #[error("Error obtaining STS Credentials {0}")]
+    CredentialsError(#[from] CredentialsError),
+    #[error("RusotoError {0}")]
+    RusotoError(Box<dyn std::error::Error>),
+}
+
+impl<T: std::error::Error + 'static> From<RusotoError<T>> for StsClientError {
+    fn from(item: RusotoError<T>) -> Self {
+        Self::RusotoError(item.into())
+    }
 }
 
 #[macro_export]
 macro_rules! get_client_sts {
     ($T:ty, $region:expr) => {
         $crate::StsInstance::new(None).and_then(|sts| {
-            let client = match sts.get_provider() {
+            let client = match sts.get_provider()? {
                 Some(provider) => {
                     <$T>::new_with(rusoto_core::HttpClient::new()?, provider, $region)
                 }
@@ -120,19 +132,26 @@ impl StsInstance {
 
     pub fn get_provider(
         &self,
-    ) -> Option<AutoRefreshingProvider<StsAssumeRoleSessionCredentialsProvider>> {
-        self.role_arn.as_ref().and_then(|role_arn| {
-            AutoRefreshingProvider::new(StsAssumeRoleSessionCredentialsProvider::new(
-                self.sts_client.clone(),
-                role_arn.to_string(),
-                "default".to_string(),
-                None,
-                None,
-                None,
-                None,
-            ))
-            .ok()
-        })
+    ) -> Result<
+        Option<AutoRefreshingProvider<StsAssumeRoleSessionCredentialsProvider>>,
+        StsClientError,
+    > {
+        match &self.role_arn {
+            Some(role_arn) => {
+                let provider =
+                    AutoRefreshingProvider::new(StsAssumeRoleSessionCredentialsProvider::new(
+                        self.sts_client.clone(),
+                        role_arn.to_string(),
+                        "default".to_string(),
+                        None,
+                        None,
+                        None,
+                        None,
+                    ))?;
+                Ok(Some(provider))
+            }
+            None => Ok(None),
+        }
     }
 }
 
@@ -282,24 +301,25 @@ mod tests {
     use rusoto_core::Region;
     use rusoto_ec2::{DescribeInstancesRequest, Ec2, Ec2Client};
 
-    use crate::AwsProfileInfo;
+    use crate::{AwsProfileInfo, StsClientError};
 
     #[test]
     #[ignore]
-    fn test_fill_profile_map() {
-        let prof_map = AwsProfileInfo::fill_profile_map().unwrap();
+    fn test_fill_profile_map() -> Result<(), StsClientError> {
+        let prof_map = AwsProfileInfo::fill_profile_map()?;
         for (k, v) in &prof_map {
             println!("{} {:?}", k, v);
         }
         assert!(prof_map.len() > 0);
         assert!(prof_map.contains_key("default"));
+        Ok(())
     }
 
     #[test]
     #[ignore]
-    fn test_get_client_sts() {
+    fn test_get_client_sts() -> Result<(), StsClientError> {
         let region = Region::UsEast1;
-        let ec2 = get_client_sts!(Ec2Client, region).unwrap();
+        let ec2 = get_client_sts!(Ec2Client, region)?;
         let instances: Vec<_> = ec2
             .describe_instances(DescribeInstancesRequest::default())
             .sync()
@@ -318,9 +338,9 @@ mod tests {
                     })
                     .flatten()
                     .collect()
-            })
-            .unwrap();
+            })?;
         println!("{:?}", instances);
         assert!(instances.len() > 0);
+        Ok(())
     }
 }
