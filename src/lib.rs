@@ -14,16 +14,16 @@
 use lazy_static::lazy_static;
 use regex::Regex;
 use rusoto_core::request::TlsError;
-use rusoto_core::{HttpClient, Region, RusotoError};
+use rusoto_core::{Client, HttpClient, Region, RusotoError};
 use rusoto_credential::{AutoRefreshingProvider, CredentialsError, StaticProvider};
 use rusoto_sts::{StsAssumeRoleSessionCredentialsProvider, StsClient};
 use std::collections::HashMap;
 use std::env::{var, VarError};
+use std::fmt::Display;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
 use thiserror::Error;
-use std::fmt::Display;
 
 lazy_static! {
     static ref PROFILE_REGEX: Regex =
@@ -50,17 +50,36 @@ impl<T: std::error::Error + 'static> From<RusotoError<T>> for StsClientError {
     }
 }
 
+/// Macro to return a profile authenticated client
+///
+/// This macro takes two arguments:
+/// 1. A Rusoto client type (e.g. Ec2Client) which has the `new` and `new_with` methods
+/// 2. A Rusoto Region
+///
+/// It will return an instance of the provided client (e.g. Ec2Client) which will use
+/// either the default profile or the profile specified by the AWS_PROFILE env variable
+/// when authenticating.
+///
+/// # Example usage:
+/// ```
+/// use rusoto_core::Region;
+/// use rusoto_ec2::Ec2Client;
+/// use sts_profile_auth::get_client_sts;
+/// use sts_profile_auth::StsClientError;
+///
+/// # fn main() -> Result<(), StsClientError> {
+/// let region = Region::UsEast1;
+/// let ec2 = get_client_sts!(Ec2Client, region)?;
+/// # Ok(())
+/// # }
+/// ```
 #[macro_export]
 macro_rules! get_client_sts {
     ($T:ty, $region:expr) => {
         $crate::StsInstance::new(None).and_then(|sts| {
-            let client = match sts.get_provider()? {
-                Some(provider) => {
-                    <$T>::new_with(rusoto_core::HttpClient::new()?, provider, $region)
-                }
-                None => <$T>::new($region),
-            };
-            Ok(client)
+            let client = sts.get_client()?;
+
+            Ok(<$T>::new_with_client(client, $region))
         })
     };
 }
@@ -152,6 +171,14 @@ impl StsInstance {
             }
             None => Ok(None),
         }
+    }
+
+    pub fn get_client(&self) -> Result<Client, StsClientError> {
+        let client = match self.get_provider()? {
+            Some(provider) => Client::new_with(provider, rusoto_core::HttpClient::new()?),
+            None => Client::shared(),
+        };
+        Ok(client)
     }
 }
 
