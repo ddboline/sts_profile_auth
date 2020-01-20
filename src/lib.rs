@@ -10,7 +10,17 @@
 #![allow(clippy::shadow_unrelated)]
 #![allow(clippy::pub_enum_variant_names)]
 
-///! The purpose of this crate
+//! The AWS cli tool allows [specifying authentication via profiles in the aws credentials file](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html), using an entry that look like:
+//!
+//! ```bash
+//! [profile special-profile]
+//! role_arn = arn:aws:iam:867530912345:role/Special_Role
+//! source_profile = default
+//! ```
+//!
+//! This crate extends [Rusoto's](https://crates.io/crates/rusoto) existing authentication infrastructure to support this feature.
+
+use dirs::home_dir;
 use lazy_static::lazy_static;
 use regex::Regex;
 use rusoto_core::request::TlsError;
@@ -18,11 +28,11 @@ use rusoto_core::{Client, HttpClient, Region, RusotoError};
 use rusoto_credential::{AutoRefreshingProvider, CredentialsError, StaticProvider};
 use rusoto_sts::{StsAssumeRoleSessionCredentialsProvider, StsClient};
 use std::collections::HashMap;
-use std::env::{var, VarError};
+use std::env::{var, var_os, VarError};
 use std::fmt::Display;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use thiserror::Error;
 
 lazy_static! {
@@ -36,8 +46,8 @@ pub enum StsClientError {
     TlsError(#[from] TlsError),
     #[error("Profile {0} is not available")]
     StsProfileError(String),
-    #[error("No HOME directory {0}")]
-    NoHomeError(#[from] VarError),
+    #[error("No HOME directory")]
+    NoHomeError,
     #[error("Error obtaining STS Credentials {0}")]
     CredentialsError(#[from] CredentialsError),
     #[error("RusotoError {0}")]
@@ -251,9 +261,16 @@ impl AwsProfileInfo {
 
     /// Extract profile information hashmap from `${HOME}/.aws/config` and `${HOME}/.aws/credentials`
     pub fn fill_profile_map() -> Result<HashMap<String, Self>, StsClientError> {
-        let home_dir = var("HOME").map_err(StsClientError::NoHomeError)?;
-        let config_file = format!("{}/.aws/config", home_dir);
-        let credential_file = format!("{}/.aws/credentials", home_dir);
+        let config_dir = if let Some(s) = var_os("AWS_CONFIG_FILE") {
+            PathBuf::from(s)
+        } else if let Some(h) = home_dir() {
+            h.join(".aws")
+        } else {
+            return Err(StsClientError::NoHomeError);
+        };
+
+        let config_file = config_dir.join("config");
+        let credential_file = config_dir.join("credentials");
 
         let mut profile_map: HashMap<String, HashMap<String, String>> = HashMap::new();
 
