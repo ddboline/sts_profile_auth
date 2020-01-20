@@ -9,6 +9,10 @@ homepage = "https://github.com/ddboline/sts_profile_auth"
 repository = "https://github.com/ddboline/sts_profile_auth"
 keywords = ["AWS", "STS"]
 readme = "README.md"
+exclude = [
+    ".github/*",
+    ".gitignore",
+]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
