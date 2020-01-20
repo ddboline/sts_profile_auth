@@ -63,7 +63,7 @@ impl<T: std::error::Error + 'static> From<RusotoError<T>> for StsClientError {
 /// when authenticating.
 ///
 /// # Example usage:
-/// ```
+/// ``` ignore
 /// use rusoto_core::Region;
 /// use rusoto_ec2::Ec2Client;
 /// use sts_profile_auth::get_client_sts;
