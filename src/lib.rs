@@ -10,14 +10,6 @@
 #![allow(clippy::shadow_unrelated)]
 #![allow(clippy::pub_enum_variant_names)]
 
-//! The AWS cli tool allows [specifying authentication via profiles in the aws credentials file](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html), using an entry that look like:
-//!
-//! ```bash
-//! [profile special-profile]
-//! role_arn = arn:aws:iam:867530912345:role/Special_Role
-//! source_profile = default
-//! ```
-//!
 //! This crate extends [Rusoto's](https://crates.io/crates/rusoto) existing authentication infrastructure to support this feature.
 
 use dirs::home_dir;
@@ -94,7 +86,7 @@ macro_rules! get_client_sts {
     };
 }
 
-/// `StsInstance` contains an StsClient instance, and metadata used to create it (region, keys, role_arn)
+/// `StsInstance` contains an `StsClient` instance, and metadata used to create it (region, keys, role arn)
 #[derive(Clone)]
 pub struct StsInstance {
     sts_client: StsClient,
@@ -117,7 +109,7 @@ impl Default for StsInstance {
 }
 
 impl StsInstance {
-    /// Create a new `StsInstance`, either specifying a profile name, using the AWS_PROFILE environment variable, or using default
+    /// Create a new `StsInstance`, either specifying a profile name, using the `AWS_PROFILE` environment variable, or using default
     pub fn new(profile_name: Option<&str>) -> Result<Self, StsClientError> {
         let profiles = AwsProfileInfo::fill_profile_map()?;
         let profile_name = match profile_name {
