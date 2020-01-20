@@ -3,6 +3,12 @@ name = "sts_profile_auth"
 version = "0.3.3"
 authors = ["Daniel Boline <ddboline@gmail.com>"]
 edition = "2018"
+license-file = "LICENSE"
+description = "Authenticate using a profile in your aws credential file when using rusoto"
+homepage = "https://github.com/ddboline/sts_profile_auth"
+repository = "https://github.com/ddboline/sts_profile_auth"
+keywords = ["AWS", "STS"]
+readme = "README.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -10,10 +16,10 @@ edition = "2018"
 lazy_static = "1.4"
 regex = {version = "1.3", default_features = false}
 rusoto_core = {version = "0.42", default_features = false, features=["rustls"]}
-rusoto_ec2 = {version = "0.42", default_features = false, features=["rustls"]}
-rusoto_ecr = {version = "0.42", default_features = false, features=["rustls"]}
 rusoto_sts = {version = "0.42", default_features = false, features=["rustls"]}
-rusoto_s3 = {version = "0.42", default_features = false, features=["rustls"]}
 rusoto_credential = {version = "0.42"}
 thiserror = "1.0"
 dirs = "2.0"
+
+[dev-dependencies]
+rusoto_ec2 = {version = "0.42", default_features = false, features=["rustls"]}
