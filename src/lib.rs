@@ -51,12 +51,12 @@ pub enum StsClientError {
     #[error("Error obtaining STS Credentials {0}")]
     CredentialsError(#[from] CredentialsError),
     #[error("RusotoError {0}")]
-    RusotoError(Box<dyn std::error::Error>),
+    RusotoError(String),
 }
 
 impl<T: std::error::Error + 'static> From<RusotoError<T>> for StsClientError {
     fn from(item: RusotoError<T>) -> Self {
-        Self::RusotoError(item.into())
+        Self::RusotoError(item.to_string())
     }
 }
 
