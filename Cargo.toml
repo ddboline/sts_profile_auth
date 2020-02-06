@@ -27,3 +27,4 @@ dirs = "2.0"
 
 [dev-dependencies]
 rusoto_ec2 = {path = "rusoto/rusoto/services/ec2", default_features = false, features=["rustls"]}
+tokio = {version="0.2", features=["full"]}

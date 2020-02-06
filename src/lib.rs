@@ -368,14 +368,14 @@ mod tests {
         Ok(())
     }
 
-    #[test]
+    #[tokio::test]
     #[ignore]
-    fn test_get_client_sts() -> Result<(), StsClientError> {
+    async fn test_get_client_sts() -> Result<(), StsClientError> {
         let region = Region::UsEast1;
         let ec2 = get_client_sts!(Ec2Client, region)?;
         let instances: Vec<_> = ec2
             .describe_instances(DescribeInstancesRequest::default())
-            .sync()
+            .await
             .map(|instances| {
                 instances
                     .reservations
