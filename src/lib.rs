@@ -40,6 +40,24 @@ lazy_static! {
         Regex::new(r"^\[(profile )?([^\]]+)\]$").expect("Failed to compile regex");
 }
 
+type StsAuthProvider = AutoRefreshingProvider<StsAssumeRoleSessionCredentialsProvider>;
+
+fn get_sts_auth_provider(
+    client: StsClient,
+    role_arn: &str,
+) -> Result<StsAuthProvider, StsClientError> {
+    let provider = StsAssumeRoleSessionCredentialsProvider::new(
+        client,
+        role_arn.to_string(),
+        "default".to_string(),
+        None,
+        None,
+        None,
+        None,
+    );
+    AutoRefreshingProvider::new(provider).map_err(Into::into)
+}
+
 #[derive(Debug, Error)]
 pub enum StsClientError {
     #[error("HttpClient init failed")]
@@ -162,24 +180,10 @@ impl StsInstance {
     }
 
     /// Get an auto-refreshing credential provider
-    pub fn get_provider(
-        &self,
-    ) -> Result<
-        Option<AutoRefreshingProvider<StsAssumeRoleSessionCredentialsProvider>>,
-        StsClientError,
-    > {
+    pub fn get_provider(&self) -> Result<Option<StsAuthProvider>, StsClientError> {
         match &self.role_arn {
             Some(role_arn) => {
-                let provider =
-                    AutoRefreshingProvider::new(StsAssumeRoleSessionCredentialsProvider::new(
-                        self.sts_client.clone(),
-                        role_arn.to_string(),
-                        "default".to_string(),
-                        None,
-                        None,
-                        None,
-                        None,
-                    ))?;
+                let provider = get_sts_auth_provider(self.sts_client.clone(), role_arn)?;
                 Ok(Some(provider))
             }
             None => Ok(None),
