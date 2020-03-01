@@ -15,16 +15,17 @@
 use dirs::home_dir;
 use lazy_static::lazy_static;
 use regex::Regex;
-use rusoto_core::request::TlsError;
-use rusoto_core::{Client, HttpClient, Region, RusotoError};
+use rusoto_core::{request::TlsError, Client, HttpClient, Region, RusotoError};
 use rusoto_credential::{AutoRefreshingProvider, CredentialsError, StaticProvider};
 use rusoto_sts::{StsAssumeRoleSessionCredentialsProvider, StsClient};
-use std::collections::HashMap;
-use std::env::{var, var_os, VarError};
-use std::fmt::Display;
-use std::fs::File;
-use std::io::{BufRead, BufReader};
-use std::path::{Path, PathBuf};
+use std::{
+    collections::HashMap,
+    env::{var, var_os, VarError},
+    fmt::Display,
+    fs::File,
+    io::{BufRead, BufReader},
+    path::{Path, PathBuf},
+};
 use thiserror::Error;
 
 lazy_static! {
