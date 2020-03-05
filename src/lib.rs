@@ -9,6 +9,7 @@
 #![allow(clippy::similar_names)]
 #![allow(clippy::shadow_unrelated)]
 #![allow(clippy::pub_enum_variant_names)]
+#![allow(clippy::missing_errors_doc)]
 
 //! This crate extends [Rusoto's](https://crates.io/crates/rusoto) existing authentication infrastructure to support this feature.
 
@@ -71,15 +72,34 @@ impl<T: std::error::Error + 'static> From<RusotoError<T>> for StsClientError {
     }
 }
 
+#[doc(hidden)]
+#[macro_export]
+macro_rules! get_client_sts_region_profile {
+    ($T:ty, $region:expr, $profile:expr) => {
+        $crate::StsInstance::new($profile).and_then(|sts| {
+            let client = sts.get_client()?;
+            let region = if let Some(r) = $region {
+                r
+            } else {
+                sts.get_region()
+            };
+            Ok(<$T>::new_with_client(client, region))
+        })
+    };
+}
+
 /// Macro to return a profile authenticated client
 ///
 /// This macro takes two arguments:
 /// 1. A Rusoto client type (e.g. Ec2Client) which has the `new_with_client` method
-/// 2. A Rusoto Region
+/// 2. A Rusoto Region (optional)
+/// 3. A Profile Name (optional)
 ///
 /// It will return an instance of the provided client (e.g. Ec2Client) which will use
 /// either the default profile or the profile specified by the AWS_PROFILE env variable
 /// when authenticating.
+///
+/// The macro `get_client_sts_with_profile` accepts a client and a profile name but no region.
 ///
 /// # Example usage:
 /// ``` ignore
@@ -89,19 +109,50 @@ impl<T: std::error::Error + 'static> From<RusotoError<T>> for StsClientError {
 /// use sts_profile_auth::StsClientError;
 ///
 /// # fn main() -> Result<(), StsClientError> {
-/// let region = Region::UsEast1;
-/// let ec2 = get_client_sts!(Ec2Client, region)?;
+/// let ec2 = get_client_sts!(Ec2Client)?;
+/// let ec2 = get_client_sts!(Ec2Client, Region::default())?;
+/// let ec2 = get_client_sts!(Ec2Client, Region::default(), "default")?;
 /// # Ok(())
 /// # }
 /// ```
 #[macro_export]
 macro_rules! get_client_sts {
+    ($T:ty) => {
+        $crate::get_client_sts_region_profile!($T, None, None)
+    };
     ($T:ty, $region:expr) => {
-        $crate::StsInstance::new(None).and_then(|sts| {
-            let client = sts.get_client()?;
+        $crate::get_client_sts_region_profile!($T, Some($region), None)
+    };
+    ($T:ty, $region:expr, $profile:expr) => {
+        $crate::get_client_sts_region_profile!($T, Some($region), Some($profile))
+    };
+}
 
-            Ok(<$T>::new_with_client(client, $region))
-        })
+/// Macro to return a profile authenticated client
+///
+/// This macro takes two arguments:
+/// 1. A Rusoto client type (e.g. Ec2Client) which has the `new_with_client` method
+/// 2. A Profile Name
+///
+/// It will return an instance of the provided client (e.g. Ec2Client) which will use
+/// the specified profile when authenticating.
+///
+/// # Example usage:
+/// ``` ignore
+/// use rusoto_core::Region;
+/// use rusoto_ec2::Ec2Client;
+/// use sts_profile_auth::get_client_sts_with_profile;
+/// use sts_profile_auth::StsClientError;
+///
+/// # fn main() -> Result<(), StsClientError> {
+/// let ec2 = get_client_sts_with_profile!(Ec2Client, "default")?;
+/// # Ok(())
+/// # }
+/// ```
+#[macro_export]
+macro_rules! get_client_sts_with_profile {
+    ($T:ty, $profile:expr) => {
+        $crate::get_client_sts_region_profile!($T, None, Some($profile))
     };
 }
 
@@ -118,8 +169,8 @@ pub struct StsInstance {
 impl Default for StsInstance {
     fn default() -> Self {
         Self {
-            sts_client: StsClient::new(Region::UsEast1),
-            region: Region::UsEast1,
+            sts_client: StsClient::new(Region::default()),
+            region: Region::default(),
             aws_access_key_id: "".to_string(),
             aws_secret_access_key: "".to_string(),
             role_arn: None,
@@ -141,11 +192,11 @@ impl StsInstance {
             .get(&profile_name)
             .ok_or_else(|| StsClientError::StsProfileError(profile_name))?;
 
-        let region = current_profile
+        let region: Region = current_profile
             .region
             .parse()
             .ok()
-            .unwrap_or(Region::UsEast1);
+            .unwrap_or_default();
         let (key, secret) = match current_profile.source_profile.as_ref() {
             Some(prof) => {
                 let source_profile = profiles
@@ -190,6 +241,10 @@ impl StsInstance {
             None => Client::shared(),
         };
         Ok(client)
+    }
+
+    pub fn get_region(&self) -> Region {
+        self.region.clone()
     }
 }
 
@@ -368,8 +423,7 @@ mod tests {
     #[tokio::test]
     #[ignore]
     async fn test_get_client_sts() -> Result<(), StsClientError> {
-        let region = Region::UsEast1;
-        let ec2 = get_client_sts!(Ec2Client, region)?;
+        let ec2 = get_client_sts!(Ec2Client)?;
         let instances: Vec<_> = ec2
             .describe_instances(DescribeInstancesRequest::default())
             .await
