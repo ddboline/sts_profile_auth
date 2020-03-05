@@ -72,6 +72,7 @@ impl<T: std::error::Error + 'static> From<RusotoError<T>> for StsClientError {
     }
 }
 
+#[doc(hidden)]
 #[macro_export]
 macro_rules! get_client_sts_region_profile {
     ($T:ty, $region:expr, $profile:expr) => {
@@ -91,11 +92,14 @@ macro_rules! get_client_sts_region_profile {
 ///
 /// This macro takes two arguments:
 /// 1. A Rusoto client type (e.g. Ec2Client) which has the `new_with_client` method
-/// 2. A Rusoto Region
+/// 2. A Rusoto Region (optional)
+/// 3. A Profile Name (optional)
 ///
 /// It will return an instance of the provided client (e.g. Ec2Client) which will use
 /// either the default profile or the profile specified by the AWS_PROFILE env variable
 /// when authenticating.
+///
+/// The macro `get_client_sts_with_profile` accepts a client and a profile name but no region.
 ///
 /// # Example usage:
 /// ``` ignore
