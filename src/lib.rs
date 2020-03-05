@@ -110,6 +110,8 @@ macro_rules! get_client_sts_region_profile {
 ///
 /// # fn main() -> Result<(), StsClientError> {
 /// let ec2 = get_client_sts!(Ec2Client)?;
+/// let ec2 = get_client_sts!(Ec2Client, Region::default())?;
+/// let ec2 = get_client_sts!(Ec2Client, Region::default(), "default")?;
 /// # Ok(())
 /// # }
 /// ```
@@ -126,6 +128,27 @@ macro_rules! get_client_sts {
     };
 }
 
+/// Macro to return a profile authenticated client
+///
+/// This macro takes two arguments:
+/// 1. A Rusoto client type (e.g. Ec2Client) which has the `new_with_client` method
+/// 2. A Profile Name
+///
+/// It will return an instance of the provided client (e.g. Ec2Client) which will use
+/// the specified profile when authenticating.
+///
+/// # Example usage:
+/// ``` ignore
+/// use rusoto_core::Region;
+/// use rusoto_ec2::Ec2Client;
+/// use sts_profile_auth::get_client_sts_with_profile;
+/// use sts_profile_auth::StsClientError;
+///
+/// # fn main() -> Result<(), StsClientError> {
+/// let ec2 = get_client_sts_with_profile!(Ec2Client, "default")?;
+/// # Ok(())
+/// # }
+/// ```
 #[macro_export]
 macro_rules! get_client_sts_with_profile {
     ($T:ty, $profile:expr) => {
