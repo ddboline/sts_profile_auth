@@ -72,6 +72,21 @@ impl<T: std::error::Error + 'static> From<RusotoError<T>> for StsClientError {
     }
 }
 
+#[macro_export]
+macro_rules! get_client_sts_region_profile {
+    ($T:ty, $region:expr, $profile:expr) => {
+        $crate::StsInstance::new($profile).and_then(|sts| {
+            let client = sts.get_client()?;
+            let region = if let Some(r) = $region {
+                r
+            } else {
+                sts.get_region()
+            };
+            Ok(<$T>::new_with_client(client, region))
+        })
+    };
+}
+
 /// Macro to return a profile authenticated client
 ///
 /// This macro takes two arguments:
@@ -94,21 +109,6 @@ impl<T: std::error::Error + 'static> From<RusotoError<T>> for StsClientError {
 /// # Ok(())
 /// # }
 /// ```
-#[macro_export]
-macro_rules! get_client_sts_region_profile {
-    ($T:ty, $region:expr, $profile:expr) => {
-        $crate::StsInstance::new($profile).and_then(|sts| {
-            let client = sts.get_client()?;
-            let region = if let Some(r) = $region {
-                r
-            } else {
-                sts.get_region()
-            };
-            Ok(<$T>::new_with_client(client, region))
-        })
-    };
-}
-
 #[macro_export]
 macro_rules! get_client_sts {
     ($T:ty) => {
