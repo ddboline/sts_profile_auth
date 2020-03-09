@@ -1,5 +1,5 @@
 # sts_profile_auth
-The AWS cli tool allows [specifying authentication via profiles in the aws credentials file](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html), using an entry that look like:
+This crate extends [Rusoto's](https://crates.io/crates/rusoto) existing authentication infrastructure to let you use [profiles specified in a config or credentials file](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html).  The entries look something like:
 
 ```bash
 [profile special-profile]
