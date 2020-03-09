@@ -3,6 +3,7 @@ This crate extends [Rusoto's](https://crates.io/crates/rusoto) existing authenti
 
 ```bash
 [profile special-profile]
+region = us-east-1
 role_arn = arn:aws:iam:867530912345:role/Special_Role
 source_profile = default
 ```
@@ -17,8 +18,7 @@ Usage:
     use sts_profile_auth::get_client_sts;
 
     fn main() -> Result<(), Error> {
-        let region = Region::UsEast1;
-        let ec2 = get_client_sts!(Ec2Client, region)?;
+        let ec2 = get_client_sts!(Ec2Client)?;
         Ok(())
     }
 ```
