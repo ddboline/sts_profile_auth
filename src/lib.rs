@@ -165,6 +165,7 @@ pub struct StsInstance {
     region: Region,
     aws_access_key_id: String,
     aws_secret_access_key: String,
+    aws_session_token: Option<String>,
     role_arn: Option<String>,
 }
 
@@ -175,6 +176,7 @@ impl Default for StsInstance {
             region: Region::default(),
             aws_access_key_id: "".to_string(),
             aws_secret_access_key: "".to_string(),
+            aws_session_token: None,
             role_arn: None,
         }
     }
@@ -196,7 +198,7 @@ impl StsInstance {
             .ok_or_else(|| StsClientError::StsProfileError(profile_name))?;
 
         let region: Region = current_profile.region.parse().ok().unwrap_or_default();
-        let (key, secret) = match current_profile.source_profile.as_ref() {
+        let (key, secret, token) = match current_profile.source_profile.as_ref() {
             Some(prof) => {
                 let source_profile = profiles
                     .get(prof)
@@ -204,14 +206,16 @@ impl StsInstance {
                 (
                     source_profile.aws_access_key_id.to_string(),
                     source_profile.aws_secret_access_key.to_string(),
+                    source_profile.aws_session_token.clone(),
                 )
             }
             None => (
                 current_profile.aws_access_key_id.to_string(),
                 current_profile.aws_secret_access_key.to_string(),
+                current_profile.aws_session_token.clone(),
             ),
         };
-        let provider = StaticProvider::new_minimal(key.to_string(), secret.to_string());
+        let provider = StaticProvider::new(key.to_string(), secret.to_string(), token, None);
 
         Ok(Self {
             sts_client: StsClient::new_with(HttpClient::new()?, provider, region.clone()),
@@ -219,6 +223,7 @@ impl StsInstance {
             aws_access_key_id: key,
             aws_secret_access_key: secret,
             role_arn: current_profile.role_arn.clone(),
+            aws_session_token: current_profile.aws_session_token.clone(),
         })
     }
 
@@ -256,6 +261,7 @@ pub struct AwsProfileInfo {
     pub region: String,
     pub aws_access_key_id: String,
     pub aws_secret_access_key: String,
+    pub aws_session_token: Option<String>,
     pub role_arn: Option<String>,
     pub source_profile: Option<String>,
 }
@@ -284,6 +290,7 @@ impl AwsProfileInfo {
         let mut access_secret = prof_map
             .get("aws_secret_access_key")
             .map(ToString::to_string);
+        let aws_session_token = prof_map.get("aws_session_token").map(ToString::to_string);
 
         if let Some(s) = source_profile.as_ref() {
             let pmap = match profile_map.get(s) {
@@ -303,11 +310,13 @@ impl AwsProfileInfo {
             Some(a) => a,
             None => return None,
         };
+
         Some(Self {
             name,
             region,
             aws_access_key_id,
             aws_secret_access_key,
+            aws_session_token,
             role_arn,
             source_profile,
         })
