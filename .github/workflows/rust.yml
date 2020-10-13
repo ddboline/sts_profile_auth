@@ -26,7 +26,7 @@ jobs:
         echo [default] > ${AWS_CONFIG_FILE}/credentials && \
         echo aws_access_key_id = ${AWS_ACCESS_KEY_ID} >> ${AWS_CONFIG_FILE}/credentials && \
         echo aws_secret_access_key = ${AWS_SECRET_ACCESS_KEY} >> ${AWS_CONFIG_FILE}/credentials && \
-        cargo test --verbose && \
+        cargo test --all --verbose && \
         cargo install cargo-tarpaulin && \
         cargo tarpaulin --verbose --all-features --workspace --out Xml
       env:

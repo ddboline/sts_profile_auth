@@ -185,17 +185,24 @@ impl Default for StsInstance {
 impl StsInstance {
     /// Create a new `StsInstance`, either specifying a profile name, using the
     /// `AWS_PROFILE` environment variable, or using default
-    pub fn new(profile_name: Option<&str>) -> Result<Self, StsClientError> {
+    pub fn new(profile: Option<&str>) -> Result<Self, StsClientError> {
         let profiles = AwsProfileInfo::fill_profile_map()?;
-        let profile_name = match profile_name {
+        let profile_name = match profile {
             Some(n) => n.to_string(),
             None => var("AWS_PROFILE")
                 .ok()
                 .unwrap_or_else(|| "default".to_string()),
         };
-        let current_profile = profiles
-            .get(&profile_name)
-            .ok_or_else(|| StsClientError::StsProfileError(profile_name))?;
+        let current_profile = match profiles.get(&profile_name) {
+            Some(p) => p,
+            None => {
+                if profile.is_none() {
+                    return Ok(Self::default());
+                } else {
+                    return Err(StsClientError::StsProfileError(profile_name));
+                }
+            }
+        };
 
         let region: Region = current_profile.region.parse().ok().unwrap_or_default();
         let (key, secret, token) = match current_profile.source_profile.as_ref() {
