@@ -18,7 +18,7 @@ exclude = [
 
 [dependencies]
 lazy_static = "1.4"
-regex = {version = "1.3", default_features = false}
+regex = {version = "1.4", default_features = false}
 rusoto_core = {version = "0.45", default_features = false, features=["rustls"]}
 rusoto_sts = {version = "0.45", default_features = false, features=["rustls"]}
 rusoto_credential = {version = "0.45"}

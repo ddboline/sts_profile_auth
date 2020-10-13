@@ -421,7 +421,6 @@ mod tests {
     use crate::{AwsProfileInfo, StsClientError};
 
     #[test]
-    #[ignore]
     fn test_fill_profile_map() -> Result<(), StsClientError> {
         let prof_map = AwsProfileInfo::fill_profile_map()?;
         for (k, v) in &prof_map {
@@ -433,7 +432,6 @@ mod tests {
     }
 
     #[tokio::test]
-    #[ignore]
     async fn test_get_client_sts() -> Result<(), StsClientError> {
         let ec2 = get_client_sts!(Ec2Client)?;
         let instances: Vec<_> = ec2
