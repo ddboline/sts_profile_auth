@@ -20,17 +20,18 @@ jobs:
 
     - name: Run tests
       run: |
-        mkdir -p /tmp/.aws && \
-        echo [default] > /tmp/.aws/config && \
-        echo region = us-east-1 >> /tmp/.aws/config && \
-        echo [default] > /tmp/.aws/credentials && \
-        echo aws_access_key_id = ${AWS_ACCESS_KEY_ID} >> /tmp/.aws/credentials && \
-        echo aws_secret_access_key = ${AWS_SECRET_ACCESS_KEY} >> /tmp/.aws/credentials && \
+        mkdir -p ${AWS_CONFIG_FILE} && \
+        echo [default] > ${AWS_CONFIG_FILE}/config && \
+        echo region = us-east-1 >> ${AWS_CONFIG_FILE}/config && \
+        echo [default] > ${AWS_CONFIG_FILE}/credentials && \
+        echo aws_access_key_id = ${AWS_ACCESS_KEY_ID} >> ${AWS_CONFIG_FILE}/credentials && \
+        echo aws_secret_access_key = ${AWS_SECRET_ACCESS_KEY} >> ${AWS_CONFIG_FILE}/credentials && \
         cargo test --verbose
       env:
         AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY_ID}}
         AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
         AWS_DEFAULT_REGION: us-east-1
+        AWS_CONFIG_FILE: /tmp/.aws
 
     - name: Generate code coverage
       run: |
