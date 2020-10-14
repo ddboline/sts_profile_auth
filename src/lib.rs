@@ -18,7 +18,10 @@ use lazy_static::lazy_static;
 use regex::Regex;
 use rusoto_core::{request::TlsError, Client, HttpClient, Region, RusotoError};
 use rusoto_credential::{AutoRefreshingProvider, CredentialsError, StaticProvider};
-use rusoto_sts::{StsAssumeRoleSessionCredentialsProvider, StsClient};
+use rusoto_sts::{
+    GetCallerIdentityError, GetCallerIdentityRequest, GetCallerIdentityResponse, Sts as _,
+    StsAssumeRoleSessionCredentialsProvider, StsClient,
+};
 use std::{
     collections::HashMap,
     env::{var, var_os, VarError},
@@ -62,6 +65,8 @@ pub enum StsClientError {
     NoHomeError,
     #[error("Error obtaining STS Credentials {0}")]
     CredentialsError(#[from] CredentialsError),
+    #[error("GetCallerIdentityError {0}")]
+    GetCallerIdentityError(#[from] GetCallerIdentityError),
     #[error("RusotoError {0}")]
     RusotoError(String),
 }
@@ -258,6 +263,13 @@ impl StsInstance {
     pub fn get_region(&self) -> Region {
         self.region.clone()
     }
+
+    pub async fn get_user_id(&self) -> Result<GetCallerIdentityResponse, StsClientError> {
+        self.sts_client
+            .get_caller_identity(GetCallerIdentityRequest {})
+            .await
+            .map_err(Into::into)
+    }
 }
 
 /// Profile meta-data, representing either a profile with an access key, or a
@@ -425,7 +437,16 @@ mod tests {
     use rusoto_core::Region;
     use rusoto_ec2::{DescribeInstancesRequest, Ec2, Ec2Client};
 
-    use crate::{AwsProfileInfo, StsClientError};
+    use crate::{AwsProfileInfo, StsClientError, StsInstance};
+
+    #[tokio::test]
+    async fn test_get_user_id() -> Result<(), StsClientError> {
+        let sts = StsInstance::new(None)?;
+        let user = sts.get_user_id().await?;
+        println!("{:?}", user);
+        assert!(user.user_id.is_some());
+        Ok(())
+    }
 
     #[test]
     fn test_fill_profile_map() -> Result<(), StsClientError> {
