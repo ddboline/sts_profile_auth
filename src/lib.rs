@@ -108,7 +108,7 @@ macro_rules! get_client_sts_region_profile {
 /// but no region.
 ///
 /// # Example usage:
-/// ``` ignore
+/// ```
 /// use rusoto_core::Region;
 /// use rusoto_ec2::Ec2Client;
 /// use sts_profile_auth::get_client_sts;
@@ -144,7 +144,7 @@ macro_rules! get_client_sts {
 /// will use the specified profile when authenticating.
 ///
 /// # Example usage:
-/// ``` ignore
+/// ```
 /// use rusoto_core::Region;
 /// use rusoto_ec2::Ec2Client;
 /// use sts_profile_auth::get_client_sts_with_profile;
