@@ -17,7 +17,9 @@ use dirs::home_dir;
 use lazy_static::lazy_static;
 use regex::Regex;
 use rusoto_core::{request::TlsError, Client, HttpClient, Region, RusotoError};
-use rusoto_credential::{AutoRefreshingProvider, CredentialsError, StaticProvider};
+use rusoto_credential::{
+    AutoRefreshingProvider, CredentialsError, DefaultCredentialsProvider, StaticProvider,
+};
 use rusoto_sts::{
     GetCallerIdentityError, GetCallerIdentityRequest, GetCallerIdentityResponse, Sts as _,
     StsAssumeRoleSessionCredentialsProvider, StsClient,
@@ -255,7 +257,10 @@ impl StsInstance {
     pub fn get_client(&self) -> Result<Client, StsClientError> {
         let client = match self.get_provider()? {
             Some(provider) => Client::new_with(provider, rusoto_core::HttpClient::new()?),
-            None => Client::shared(),
+            None => Client::new_with(
+                DefaultCredentialsProvider::new()?,
+                rusoto_core::HttpClient::new()?,
+            ),
         };
         Ok(client)
     }
