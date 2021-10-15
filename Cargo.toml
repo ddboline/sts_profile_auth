@@ -23,7 +23,7 @@ rusoto_core = {version = "0.47", default_features = false, features=["rustls"]}
 rusoto_sts = {version = "0.47", default_features = false, features=["rustls"]}
 rusoto_credential = {version = "0.47", default_features = false}
 thiserror = "1.0"
-dirs = "3.0"
+dirs = "4.0"
 
 [dev-dependencies]
 rusoto_ec2 = {version = "0.47", default_features = false, features=["rustls"]}
