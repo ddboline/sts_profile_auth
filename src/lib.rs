@@ -8,7 +8,6 @@
 #![allow(clippy::cast_possible_wrap)]
 #![allow(clippy::similar_names)]
 #![allow(clippy::shadow_unrelated)]
-#![allow(clippy::pub_enum_variant_names)]
 #![allow(clippy::missing_errors_doc)]
 
 //! This crate extends [Rusoto's](https://crates.io/crates/rusoto) existing authentication infrastructure to support this feature.
@@ -98,13 +97,13 @@ macro_rules! get_client_sts_region_profile {
 /// Macro to return a profile authenticated client
 ///
 /// This macro takes two arguments:
-/// 1. A Rusoto client type (e.g. Ec2Client) which has the `new_with_client`
+/// 1. A Rusoto client type (e.g. `Ec2Client`) which has the `new_with_client`
 /// method 2. A Rusoto Region (optional)
 /// 3. A Profile Name (optional)
 ///
-/// It will return an instance of the provided client (e.g. Ec2Client) which
+/// It will return an instance of the provided client (e.g. `Ec2Client`) which
 /// will use either the default profile or the profile specified by the
-/// AWS_PROFILE env variable when authenticating.
+/// `AWS_PROFILE` env variable when authenticating.
 ///
 /// The macro `get_client_sts_with_profile` accepts a client and a profile name
 /// but no region.
@@ -139,10 +138,10 @@ macro_rules! get_client_sts {
 /// Macro to return a profile authenticated client
 ///
 /// This macro takes two arguments:
-/// 1. A Rusoto client type (e.g. Ec2Client) which has the `new_with_client`
+/// 1. A Rusoto client type (e.g. `Ec2Client`) which has the `new_with_client`
 /// method 2. A Profile Name
 ///
-/// It will return an instance of the provided client (e.g. Ec2Client) which
+/// It will return an instance of the provided client (e.g. `Ec2Client`) which
 /// will use the specified profile when authenticating.
 ///
 /// # Example usage:
@@ -170,9 +169,6 @@ macro_rules! get_client_sts_with_profile {
 pub struct StsInstance {
     sts_client: StsClient,
     region: Region,
-    aws_access_key_id: String,
-    aws_secret_access_key: String,
-    aws_session_token: Option<String>,
     role_arn: Option<String>,
 }
 
@@ -181,9 +177,6 @@ impl Default for StsInstance {
         Self {
             sts_client: StsClient::new(Region::default()),
             region: Region::default(),
-            aws_access_key_id: "".to_string(),
-            aws_secret_access_key: "".to_string(),
-            aws_session_token: None,
             role_arn: None,
         }
     }
@@ -205,9 +198,8 @@ impl StsInstance {
             None => {
                 if profile.is_none() {
                     return Ok(Self::default());
-                } else {
-                    return Err(StsClientError::StsProfileError(profile_name));
                 }
+                return Err(StsClientError::StsProfileError(profile_name));
             }
         };
 
@@ -229,15 +221,12 @@ impl StsInstance {
                 current_profile.aws_session_token.clone(),
             ),
         };
-        let provider = StaticProvider::new(key.to_string(), secret.to_string(), token, None);
+        let provider = StaticProvider::new(key, secret, token, None);
 
         Ok(Self {
             sts_client: StsClient::new_with(HttpClient::new()?, provider, region.clone()),
             region,
-            aws_access_key_id: key,
-            aws_secret_access_key: secret,
             role_arn: current_profile.role_arn.clone(),
-            aws_session_token: current_profile.aws_session_token.clone(),
         })
     }
 
