@@ -197,7 +197,16 @@ impl StsInstance {
             Some(p) => p,
             None => {
                 if profile.is_none() {
-                    return Ok(Self::default());
+                    let provider = DefaultCredentialsProvider::new()?;
+                    return Ok(Self {
+                        sts_client: StsClient::new_with(
+                            HttpClient::new()?,
+                            provider,
+                            Region::default(),
+                        ),
+                        region: Region::default(),
+                        role_arn: None,
+                    });
                 }
                 return Err(StsClientError::StsProfileError(profile_name));
             }
