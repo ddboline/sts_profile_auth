@@ -193,9 +193,7 @@ impl StsInstance {
                 .ok()
                 .unwrap_or_else(|| "default".to_string()),
         };
-        let current_profile = match profiles.get(&profile_name) {
-            Some(p) => p,
-            None => {
+        let Some(current_profile) = profiles.get(&profile_name) else {
                 if profile.is_none() {
                     let provider = DefaultCredentialsProvider::new()?;
                     return Ok(Self {
@@ -209,8 +207,7 @@ impl StsInstance {
                     });
                 }
                 return Err(StsClientError::StsProfileError(profile_name));
-            }
-        };
+            };
 
         let region: Region = current_profile.region.parse().ok().unwrap_or_default();
         let (key, secret, token) = match current_profile.source_profile.as_ref() {
@@ -297,10 +294,7 @@ impl AwsProfileInfo {
         profile_map: &HashMap<String, HashMap<String, String>>,
     ) -> Option<Self> {
         let name = profile_name.to_string();
-        let prof_map = match profile_map.get(profile_name) {
-            Some(p) => p,
-            None => return None,
-        };
+        let prof_map = profile_map.get(profile_name)?;
         let region = prof_map
             .get("region")
             .cloned()
@@ -315,23 +309,14 @@ impl AwsProfileInfo {
         let aws_session_token = prof_map.get("aws_session_token").map(ToString::to_string);
 
         if let Some(s) = source_profile.as_ref() {
-            let pmap = match profile_map.get(s) {
-                Some(p) => p,
-                None => return None,
-            };
+            let pmap = profile_map.get(s)?;
             pmap.get("aws_access_key_id")
                 .map(|a| access_key.replace(a.to_string()));
             pmap.get("aws_secret_access_key")
                 .map(|a| access_secret.replace(a.to_string()));
         }
-        let aws_access_key_id = match access_key {
-            Some(a) => a,
-            None => return None,
-        };
-        let aws_secret_access_key = match access_secret {
-            Some(a) => a,
-            None => return None,
-        };
+        let aws_access_key_id = access_key?;
+        let aws_secret_access_key = access_secret?;
 
         Some(Self {
             name,
